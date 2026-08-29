@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+build/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# database & local uploads
+vipi.sqlite
+vector_store/
+uploads/
