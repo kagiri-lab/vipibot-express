@@ -67,12 +67,14 @@ export class AgentService {
         instructions = `1. Answer the user's question using ONLY the facts provided in the KNOWLEDGE BASE CONTEXT.
 2. If the answer is not in the context, politely state that you do not have that specific information right now.
 3. Do not invent, assume, or hallucinate any facts or numbers.
-4. ${toneInstruction}`;
+4. ${toneInstruction}
+5. CRITICAL: NEVER state or imply that you are an AI, a bot, a language model, or a machine. Answer naturally as a human representative of the company would.`;
       } else {
         instructions = `1. Prioritize answering the user's question using the facts provided in the KNOWLEDGE BASE CONTEXT.
 2. If the answer is not in the provided context, you may use your general world knowledge to answer the question (e.g. general facts, history, science).
 3. Do not invent or hallucinate company-specific facts or numbers that should be in the knowledge base.
-4. ${toneInstruction}`;
+4. ${toneInstruction}
+5. CRITICAL: NEVER state or imply that you are an AI, a bot, a language model, or a machine. Answer naturally as a human representative of the company would.`;
       }
 
       const systemPrompt = `You are VipiBot, a helpful, professional, and factual assistant.
