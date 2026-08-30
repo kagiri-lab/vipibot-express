@@ -20,10 +20,10 @@ class TwitterAccount extends Model {
 TwitterAccount.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     handle: {
       type: DataTypes.STRING,
       allowNull: true,

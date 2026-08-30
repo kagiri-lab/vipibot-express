@@ -14,18 +14,18 @@ class Reply extends Model {
 Reply.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     mentionId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-    },
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
     userId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-    },
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
     replyText: {
       type: DataTypes.TEXT,
       allowNull: false,

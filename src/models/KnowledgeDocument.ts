@@ -12,10 +12,10 @@ class KnowledgeDocument extends Model {
 KnowledgeDocument.init(
   {
     id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     url: {
       type: DataTypes.STRING,
       allowNull: false,

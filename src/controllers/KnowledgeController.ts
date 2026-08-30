@@ -17,6 +17,46 @@ export class KnowledgeController {
     }
   }
 
+  static async refreshIndex(req: Request, res: Response) {
+    try {
+      const { CrawlerService } = require('../services/CrawlerService');
+      
+      // Clear in-memory cache
+      if (CrawlerService.clearVectorStoreCache) {
+        CrawlerService.clearVectorStoreCache();
+      }
+
+      // Read settings to check provider
+      const { SystemSetting } = require('../models');
+      const settings = await SystemSetting.findAll();
+      const config = settings.reduce((acc: any, setting: any) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {});
+
+      // Delete physical HNSWLib folder
+      if (!config.vector_db_provider || config.vector_db_provider === 'HNSWLIB') {
+        const path = require('path');
+        const fsLib = require('fs');
+        const vectorStorePath = path.join(process.cwd(), 'vector_store');
+        if (fsLib.existsSync(vectorStorePath)) {
+          fsLib.rmSync(vectorStorePath, { recursive: true, force: true });
+        }
+      }
+      
+      // Set ALL documents to PENDING
+      await KnowledgeDocument.update({ status: 'PENDING' }, { where: {} });
+      
+      // Trigger re-crawl immediately
+      CrawlerService.runCrawlingJob().catch(console.error);
+      
+      res.json({ message: 'Index wiped and full rebuild initiated successfully.' });
+    } catch (error: any) {
+      console.error('Error refreshing index:', error);
+      res.status(500).json({ message: error.message || 'Error refreshing index' });
+    }
+  }
+
   static async getDocuments(req: Request, res: Response) {
     try {
       const documents = await KnowledgeDocument.findAll({
@@ -72,6 +112,29 @@ export class KnowledgeController {
       res.status(201).json({ message: `${docs.length} files uploaded and added to queue`, documents: docs });
     } catch (error: any) {
       res.status(500).json({ message: 'Error uploading documents', error });
+    }
+  }
+
+  static async retryDocument(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { KnowledgeDocument } = require('../models');
+      const { CrawlerService } = require('../services/CrawlerService');
+
+      const doc = await KnowledgeDocument.findByPk(id);
+      if (!doc) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      await doc.update({ status: 'PENDING' });
+      
+      // Trigger asynchronously
+      CrawlerService.runCrawlingJob().catch(console.error);
+      
+      res.json({ message: 'Document queued for retry.' });
+    } catch (error: any) {
+      console.error('Error retrying document:', error);
+      res.status(500).json({ message: error.message || 'Error retrying document' });
     }
   }
 

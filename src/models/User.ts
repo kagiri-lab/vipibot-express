@@ -4,6 +4,8 @@ import sequelize from '../config/database';
 class User extends Model {
   declare id: number;
   declare username!: string;
+  declare email!: string;
+  declare fullName!: string;
   declare passwordHash!: string;
   declare initials!: string;
   declare role!: string;
@@ -14,14 +16,22 @@ class User extends Model {
 User.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     username: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    fullName: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     passwordHash: {
       type: DataTypes.STRING,

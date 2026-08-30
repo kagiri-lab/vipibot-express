@@ -62,8 +62,8 @@ router.put('/users/:id', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'),
 router.put('/users/:id/password', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), UserController.adminChangePassword);
 
 // Twitter Accounts (Super Admin Only)
-router.get('/accounts', authMiddleware, authorizeRoles('SUPER_ADMIN'), TwitterAccountController.getAll);
-router.get('/accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), TwitterAccountController.getById);
+router.get('/accounts', authMiddleware, TwitterAccountController.getAll);
+router.get('/accounts/:id', authMiddleware, TwitterAccountController.getById);
 router.post('/accounts', authMiddleware, authorizeRoles('SUPER_ADMIN'), TwitterAccountController.create);
 router.put('/accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), TwitterAccountController.update);
 router.delete('/accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), TwitterAccountController.delete);
@@ -88,8 +88,11 @@ router.get('/knowledge', authMiddleware, KnowledgeController.getDocuments);
 router.post('/knowledge', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.addDocument);
 router.post('/knowledge/text', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.addText);
 router.post('/knowledge/upload', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), upload.array('files', 10), KnowledgeController.uploadDocument);
+router.post('/knowledge/:id/retry', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.retryDocument);
 router.delete('/knowledge/:id', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.deleteDocument);
 router.post('/knowledge/crawl', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.forceCrawl);
+router.post('/knowledge/refresh', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), KnowledgeController.refreshIndex);
+
 
 // Agent Playground
 router.post('/agent/chat', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), AgentController.chat);

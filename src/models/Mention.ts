@@ -20,14 +20,14 @@ class Mention extends Model {
 Mention.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     twitterAccountId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-    },
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
     tweetId: {
       type: DataTypes.STRING,
       allowNull: false,

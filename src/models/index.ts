@@ -5,6 +5,7 @@ import Reply from './Reply';
 import Session from './Session';
 import SystemSetting from './SystemSetting';
 import KnowledgeDocument from './KnowledgeDocument';
+import AIAuditLog from './AIAuditLog';
 
 // Associations
 TwitterAccount.hasMany(Mention, { foreignKey: 'twitterAccountId', as: 'mentions' });
@@ -26,7 +27,8 @@ export {
   Reply,
   Session,
   SystemSetting,
-  KnowledgeDocument
+  KnowledgeDocument,
+  AIAuditLog
 };
 
 

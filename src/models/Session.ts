@@ -15,14 +15,14 @@ class Session extends Model {
 Session.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
     userId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-    },
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
     tokenStr: {
       type: DataTypes.STRING,
       allowNull: false,

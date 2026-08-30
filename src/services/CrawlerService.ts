@@ -75,7 +75,7 @@ export class CrawlerService {
       }
     } else {
       // HNSWLIB
-      if (!this.vectorStore && fs.existsSync(this.VECTOR_STORE_DIR)) {
+      if (!this.vectorStore && fs.existsSync(this.VECTOR_STORE_DIR + '/args.json')) {
         console.log('Loading HNSWLib from disk...');
         this.vectorStore = await HNSWLib.load(this.VECTOR_STORE_DIR, mockEmbeddings);
       }
@@ -100,7 +100,7 @@ export class CrawlerService {
     console.log('Running Crawler Job...');
     try {
       const pendingDocs = await KnowledgeDocument.findAll({
-        where: { status: 'PENDING' },
+        where: { status: ['PENDING', 'CRAWLING'] },
         limit: 5 // Process 5 at a time
       });
 
@@ -131,7 +131,10 @@ export class CrawlerService {
              }
           } else {
              // Fetch URL
-             const response = await fetch(doc.url);
+             const controller = new AbortController();
+             const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+             const response = await fetch(doc.url, { signal: controller.signal });
+             clearTimeout(timeoutId);
              if (!response.ok) throw new Error(`HTTP ${response.status}`);
              const html = await response.text();
              const $ = cheerio.load(html);

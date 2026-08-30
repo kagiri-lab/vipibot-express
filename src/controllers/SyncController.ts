@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { TwitterAccount, Mention, Reply, User } from '../models';
+import { TwitterAccount, Mention, Reply, User, SystemSetting } from '../models';
 import { TwitterService } from '../services/TwitterService';
 import { AgentService } from '../services/AgentService';
 
@@ -99,9 +99,15 @@ export class SyncController {
               // Handle AI Drafts
               if (account.replyMode === 'DRAFT_ONLY' || account.replyMode === 'AUTO') {
                 try {
+                  // Check System Settings for context mode
+                  const contextSetting = await SystemSetting.findOne({ where: { key: 'ai_context_mode' } });
+                  const aiContextMode = contextSetting?.value || 'THREAD';
+                  
                   let aiPromptContext = "";
-                  if (rootTweetText) aiPromptContext += `Conversation Thread Started With: "${rootTweetText}"\n\n`;
-                  if (parentTweetText) aiPromptContext += `Directly Replying To: "${parentTweetText}"\n\n`;
+                  if (aiContextMode === 'THREAD') {
+                    if (rootTweetText) aiPromptContext += `Conversation Thread Started With: "${rootTweetText}"\n\n`;
+                    if (parentTweetText) aiPromptContext += `Directly Replying To: "${parentTweetText}"\n\n`;
+                  }
                   aiPromptContext += `User's Mention To You: "${tweet.text}"`;
 
                   const replyText = await AgentService.generateReply(aiPromptContext);

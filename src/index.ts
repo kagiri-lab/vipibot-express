@@ -5,6 +5,7 @@ import routes from './routes';
 import sequelize from './config/database';
 import cron from 'node-cron';
 import { SyncController } from './controllers/SyncController';
+import { SystemSetting } from './models';
 import { CrawlerService } from './services/CrawlerService';
 
 dotenv.config();
@@ -27,12 +28,21 @@ const startServer = async () => {
     await sequelize.sync();
     console.log('Database synced.');
 
-    // Setup automatic mention syncing (every 5 minutes)
-    cron.schedule('*/5 * * * *', async () => {
-      console.log('[CRON] Running automatic mention sync...');
+    // Setup automatic mention syncing (dynamically polled every minute)
+    let lastMentionSyncTime = 0;
+    cron.schedule('* * * * *', async () => {
       try {
-        const res = await SyncController.runSync();
-        console.log(`[CRON] Sync complete: ${res.totalNew} new mentions found.`);
+        const setting = await SystemSetting.findOne({ where: { key: 'sync_interval_minutes' }});
+        const intervalMins = parseInt(setting?.value || '5', 10);
+        const now = Date.now();
+        
+        // If the interval has passed since the last sync
+        if (now - lastMentionSyncTime >= intervalMins * 60 * 1000) {
+          lastMentionSyncTime = now; // update timer immediately to prevent duplicate runs
+          console.log(`[CRON] Running automatic mention sync (Interval: ${intervalMins}m)...`);
+          const res = await SyncController.runSync();
+          console.log(`[CRON] Sync complete: ${res.totalNew} new mentions found.`);
+        }
       } catch (err) {
         console.error('[CRON] Sync failed:', err);
       }
