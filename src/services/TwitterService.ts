@@ -2,9 +2,97 @@ import { TwitterApi } from 'twitter-api-v2';
 import { TwitterAccount } from '../models';
 
 export class TwitterService {
+
+  static async getRecentTweets(accountId: number) {
+    const account = await TwitterAccount.findByPk(accountId);
+    if (!account) throw new Error('Account not found');
+    
+    if (account.apiKey === 'mock_api_key') {
+      return {
+        data: [
+          { id: '1', text: 'This is a mock recent tweet you posted!', created_at: new Date().toISOString() },
+          { id: '2', text: 'Another mock tweet. Testing the compose interface.', created_at: new Date(Date.now() - 3600000).toISOString() }
+        ]
+      };
+    }
+
+    const client = await this.getClient(accountId);
+    try {
+      const me = await client.v2.me();
+      if (!me || !me.data) return { data: [] };
+      const timeline = await client.v2.userTimeline(me.data.id, { 
+        max_results: 10,
+        expansions: ['attachments.media_keys'],
+        'media.fields': ['url', 'preview_image_url', 'type'],
+        'tweet.fields': ['created_at', 'public_metrics']
+      });
+      
+      const tweets = timeline.data.data || [];
+      const includesMedia = timeline.data.includes?.media || [];
+      
+      // Map media URLs directly onto the tweets for easier frontend rendering
+      const enrichedTweets = tweets.map(tweet => {
+        let mediaUrls = [];
+        if (tweet.attachments && tweet.attachments.media_keys) {
+          tweet.attachments.media_keys.forEach(key => {
+            const mediaItem = includesMedia.find(m => m.media_key === key);
+            if (mediaItem) {
+              if (mediaItem.type === 'photo' && mediaItem.url) mediaUrls.push(mediaItem.url);
+              if (mediaItem.type === 'video' && mediaItem.preview_image_url) mediaUrls.push(mediaItem.preview_image_url);
+            }
+          });
+        }
+        return { ...tweet, mediaUrls };
+      });
+
+      return { data: enrichedTweets };
+    } catch (e) {
+      console.error('Error fetching user timeline:', e);
+      return { data: [] };
+    }
+  }
+
   /**
    * Initializes the Twitter client for a specific account
    */
+  
+  static async syncDMs(accountId: number, sinceEventId?: string) {
+    const client = await this.getClient(accountId);
+    const options: any = { 
+       event_types: 'MessageCreate', 
+       expansions: ['sender_id', 'participant_ids'],
+       'dm_event.fields': ['id', 'text', 'event_type', 'created_at', 'sender_id', 'participant_ids', 'dm_conversation_id'],
+       max_results: 100
+    };
+    // Twitter v2 DM endpoint does not strictly support since_id the same way timelines do, 
+    // but pagination works. For basic sync, we fetch recent events.
+    try {
+      const paginator = await client.v2.listDmEvents(options);
+      let allEvents = [];
+      
+      for await (const event of paginator) {
+        allEvents.push(event);
+        if (allEvents.length >= 500) break; // limit to 500 max to prevent infinite loops
+      }
+      
+      return allEvents;
+    } catch(e) {
+      console.error('Error fetching DMs:', e);
+      return [];
+    }
+  }
+
+  static async sendDM(accountId: number, participantId: string, text: string) {
+    const client = await this.getClient(accountId);
+    try {
+      const res = await client.v2.sendDmToParticipant(participantId, { text });
+      return res;
+    } catch(e) {
+      console.error('Error sending DM:', e);
+      throw e;
+    }
+  }
+
   static async getClient(accountId: number): Promise<TwitterApi> {
     const account = await TwitterAccount.findByPk(accountId);
     if (!account || !account.isActive) {
@@ -113,7 +201,19 @@ export class TwitterService {
       }
     }
 
-    const response = await client.v2.tweet(payload);
-    return response;
+    try {
+      const response = await client.v2.tweet(payload);
+      return response;
+    } catch (err: any) {
+      const errStr = typeof err === 'object' ? JSON.stringify(err) : String(err);
+      if (replyToTweetId && (errStr.includes('You can only reply to or quote posts') || (err.message && err.message.includes('You can only reply to or quote posts')))) {
+         console.log('[FALLBACK] X API Tier blocked direct reply. Falling back to standalone Quote-Link tweet.');
+         delete payload.reply;
+         payload.text = `${payload.text}\n\nhttps://twitter.com/i/web/status/${replyToTweetId}`;
+         const fallbackResponse = await client.v2.tweet(payload);
+         return fallbackResponse;
+      }
+      throw err;
+    }
   }
 }

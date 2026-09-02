@@ -1,3 +1,5 @@
+import { TargetAccountController } from '../controllers/TargetAccountController';
+import { DmController } from '../controllers/DmController';
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
 import { StatsController } from "../controllers/StatsController";
@@ -61,6 +63,15 @@ router.get('/users/:id', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'),
 router.put('/users/:id', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), UserController.updateUserStatus);
 router.put('/users/:id/password', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), UserController.adminChangePassword);
 
+// Target Auto-Responder Accounts
+router.get('/target-accounts/:id/tweets', authMiddleware, TargetAccountController.getTargetTweets);
+router.get('/target-accounts/:id/tweets/:tweetId/replies', authMiddleware, TargetAccountController.getTweetReplies);
+router.get('/proxy/media', TargetAccountController.proxyMedia);
+router.get('/target-accounts', authMiddleware, TargetAccountController.getAll);
+router.post('/target-accounts', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), TargetAccountController.create);
+router.put('/target-accounts/:id/toggle', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), TargetAccountController.toggleActive);
+router.delete('/target-accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), TargetAccountController.delete);
+
 // Twitter Accounts (Super Admin Only)
 router.get('/accounts', authMiddleware, TwitterAccountController.getAll);
 router.get('/accounts/:id', authMiddleware, TwitterAccountController.getById);
@@ -70,6 +81,7 @@ router.delete('/accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), Tw
 
 // Tweets (Broadcast and Reply)
 router.post('/tweets', authMiddleware, upload.single('media'), TweetController.postTweet);
+router.get('/tweets/:accountId', authMiddleware, TweetController.getRecentTweets);
 
 
 // Mentions (All authenticated users)
@@ -96,5 +108,13 @@ router.post('/knowledge/refresh', authMiddleware, authorizeRoles('ADMIN', 'SUPER
 
 // Agent Playground
 router.post('/agent/chat', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'), AgentController.chat);
+
+
+router.post('/dms/sync', authMiddleware, DmController.syncConversations);
+router.get('/dms/settings/auto-reply', authMiddleware, DmController.getAutoReplySetting);
+router.post('/dms/settings/auto-reply', authMiddleware, DmController.setAutoReplySetting);
+router.get('/dms/conversations', authMiddleware, DmController.getConversations);
+router.get('/dms/conversations/:participantId', authMiddleware, DmController.getConversationMessages);
+router.post('/dms/reply', authMiddleware, DmController.sendReply);
 
 export default router;

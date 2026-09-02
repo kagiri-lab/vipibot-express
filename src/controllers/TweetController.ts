@@ -1,7 +1,19 @@
+import fs from 'fs';
 import { Request, Response } from 'express';
 import { TwitterService } from '../services/TwitterService';
 
 export class TweetController {
+
+  static async getRecentTweets(req: Request, res: Response) {
+    try {
+      const { accountId } = req.params;
+      const response = await TwitterService.getRecentTweets(parseInt(accountId, 10));
+      res.json({ data: response.data });
+    } catch (error: any) {
+      res.status(500).json({ message: 'Failed to fetch recent tweets', error: error.message || String(error) });
+    }
+  }
+
   static async postTweet(req: Request, res: Response) {
     try {
       const { accountId, text, replyToTweetId } = req.body;
@@ -15,7 +27,12 @@ export class TweetController {
       let mediaMimeType: string | undefined;
 
       if (file) {
-        mediaBuffer = file.buffer;
+        if (file.buffer) {
+          mediaBuffer = file.buffer;
+        } else if (file.path) {
+          mediaBuffer = fs.readFileSync(file.path);
+          // Optional: fs.unlinkSync(file.path); // clean up after reading
+        }
         mediaMimeType = file.mimetype;
       }
 

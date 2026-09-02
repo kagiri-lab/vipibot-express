@@ -6,7 +6,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
 export class AgentService {
-  static async generateReply(tweetText: string): Promise<string> {
+  static async generateReply(tweetText: string, customTone?: string): Promise<string> {
     let activeLlm = 'unknown';
     let modelName = 'unknown';
     let fullPrompt = '';

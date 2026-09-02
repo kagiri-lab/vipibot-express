@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { TwitterAccount, Mention, Reply, User, SystemSetting } from '../models';
+import { TwitterAccount, Mention, Reply, User, SystemSetting, TargetAccount } from '../models';
 import { TwitterService } from '../services/TwitterService';
 import { AgentService } from '../services/AgentService';
 
@@ -120,7 +120,18 @@ export class SyncController {
                       await TwitterService.replyToTweet(account.id, mentionRecord.tweetId, replyText);
                       
                       // Get a system user to attach the reply to
-                      const systemUser = await User.findOne();
+                      const [systemUser] = await User.findOrCreate({
+                        where: { role: 'AI_BOT' },
+                        defaults: {
+                          username: 'VipiBot',
+                          fullName: 'Vipi AI Co-Pilot',
+                          email: 'bot@vipi.ai',
+                          initials: 'AI',
+                          passwordHash: 'auto_generated_ai_no_login',
+                          role: 'AI_BOT',
+                          isActive: true,
+                        }
+                      });
                       
                       // Save the reply record
                       await Reply.create({
@@ -132,6 +143,13 @@ export class SyncController {
                       // Update mention to REPLIED
                       await mentionRecord.update({ draftText: replyText, status: 'REPLIED' });
                       console.log(`[AUTO-PILOT] Successfully replied to ${mentionRecord.tweetId}`);
+                      
+                      const { UserActivityLog } = require('../models');
+                      await UserActivityLog.create({
+                        userId: systemUser.id,
+                        action: 'Auto-Reply (Mention)',
+                        details: { tweetId: mentionRecord.tweetId, text: replyText }
+                      });
                     } catch (replyErr: any) {
                       console.error(`Failed to auto-reply to ${mentionRecord.tweetId}:`, replyErr);
                       syncErrors.push(`@${account.handle} Auto-reply failed: ${replyErr.message || String(replyErr)}`);
@@ -160,6 +178,65 @@ export class SyncController {
     }
     
     return { totalNew, syncErrors };
+  }
+
+
+  static async syncTargets() {
+    console.log('[CRON] Starting Target Account auto-responder sync...');
+    try {
+      const targets = await TargetAccount.findAll({ where: { isActive: true }, include: [{ model: TwitterAccount }] });
+      
+      const aiContextModeSetting = await SystemSetting.findOne({ where: { key: 'ai_context_mode' } });
+      const contextMode = aiContextModeSetting ? aiContextModeSetting.value : 'THREAD';
+
+      for (const target of targets) {
+        if (!target.TwitterAccount) continue;
+        
+        console.log(`[CRON] Checking target ${target.handle} for new tweets...`);
+        const client = await TwitterService.getClient(target.ownerAccountId);
+        
+        let timeline;
+        try {
+           timeline = await client.v2.userTimeline(target.twitterId, {
+             max_results: 5,
+             since_id: target.lastProcessedTweetId || undefined,
+             exclude: ['retweets', 'replies']
+           });
+        } catch(e) {
+           console.log(`[CRON] Failed to fetch timeline for target ${target.handle}`, e.message);
+           continue;
+        }
+
+        if (!timeline.data || !timeline.data.data || timeline.data.data.length === 0) {
+           continue;
+        }
+        
+        const newTweets = timeline.data.data.reverse();
+        
+        for (const tweet of newTweets) {
+           console.log(`[CRON] Found new target tweet ${tweet.id} from ${target.handle}. Auto-replying...`);
+           
+           try {
+             const aiPromptContext = `Target Account (${target.handle}) tweeted: "${tweet.text}"`;
+             const aiReply = await AgentService.generateReply(aiPromptContext, target.tone || undefined);
+             
+             // Send Reply
+             const fullReply = `${aiReply} ^bot`;
+             const postRes = await TwitterService.postTweet(target.ownerAccountId, fullReply, tweet.id);
+             
+             console.log(`[CRON] Auto-replied to ${target.handle} successfully.`);
+             
+             // Save last processed ID so we don't reply again
+             target.lastProcessedTweetId = tweet.id;
+             await target.save();
+           } catch (replyErr) {
+             console.error(`[CRON] Error auto-replying to ${target.handle} tweet ${tweet.id}:`, replyErr.message);
+           }
+        }
+      }
+    } catch (err) {
+      console.error('[CRON] Error in syncTargets:', err);
+    }
   }
 
   static async syncMentions(req: Request, res: Response) {
