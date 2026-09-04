@@ -15,6 +15,10 @@ export class SyncController {
     let totalNew = 0;
     const syncErrors: string[] = [];
 
+    const { SystemSetting } = require('../models');
+    const blockedSetting = await SystemSetting.findOne({ where: { key: 'blocked_handles' } });
+    const blockedHandles = blockedSetting?.value ? blockedSetting.value.split(',').map((u:string) => u.trim().toLowerCase()) : [];
+
     for (const account of accounts) {
       try {
         const latestMention = await Mention.findOne({
