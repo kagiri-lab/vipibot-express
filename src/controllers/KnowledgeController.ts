@@ -92,12 +92,19 @@ export class KnowledgeController {
 
       const docs = [];
       for (const file of files) {
-        const localUrl = `local://${file.path}`;
+        const forwardedHost = req.headers['x-forwarded-host'];
+        const host = forwardedHost || req.get('host');
+        const protocol = forwardedHost ? 'https' : req.protocol;
+        const baseUrl = process.env.API_URL || `${protocol}://${host}/api`;
+        
+        // Convert from api url to base url to serve static files
+        const hostUrl = baseUrl.replace('/api', '');
+        const publicUrl = `${hostUrl}/uploads/knowledge/${file.filename}`;
         const title = file.originalname;
 
         try {
           const doc = await KnowledgeDocument.create({ 
-            url: localUrl, 
+            url: publicUrl, 
             title: title,
             status: 'PENDING' 
           });
@@ -144,11 +151,17 @@ export class KnowledgeController {
       const doc = await KnowledgeDocument.findByPk(id);
       if (!doc) return res.status(404).json({ message: 'Document not found' });
 
-      if (doc.url.startsWith('local://')) {
+      // Extract filename if it's an uploaded file
+      if (doc.url && doc.url.includes('/uploads/knowledge/')) {
         const fs = require('fs');
-        const path = doc.url.replace('local://', '');
-        if (fs.existsSync(path)) {
-          fs.unlinkSync(path);
+        const path = require('path');
+        const urlParts = doc.url.split('/uploads/knowledge/');
+        if (urlParts.length > 1) {
+          const filename = urlParts[1];
+          const absolutePath = path.join(process.cwd(), 'uploads', 'knowledge', filename);
+          if (fs.existsSync(absolutePath)) {
+            fs.unlinkSync(absolutePath);
+          }
         }
       }
       
