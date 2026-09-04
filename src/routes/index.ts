@@ -82,11 +82,13 @@ router.delete('/accounts/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), Tw
 // Tweets (Broadcast and Reply)
 router.post('/tweets', authMiddleware, upload.single('media'), TweetController.postTweet);
 router.get('/tweets/:accountId', authMiddleware, TweetController.getRecentTweets);
+router.delete('/tweets/:accountId/:tweetId', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), TweetController.deleteTweet);
 
 
 // Mentions (All authenticated users)
 router.get('/mentions', authMiddleware, MentionController.getAll);
 router.delete('/mentions/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), MentionController.delete);
+router.post('/mentions/block', authMiddleware, authorizeRoles('SUPER_ADMIN', 'ADMIN'), MentionController.blockUser);
 router.post('/mentions/sync', authMiddleware, SyncController.syncMentions);
 
 // Replies (All authenticated users)

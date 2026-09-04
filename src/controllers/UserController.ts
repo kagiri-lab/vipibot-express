@@ -35,7 +35,7 @@ export class UserController {
   static async updateUserStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { isActive, role } = req.body;
+      const { isActive, role, username, fullName, email, initials } = req.body;
       const user = await User.findByPk(id);
       
       if (!user) return res.status(404).json({ message: 'User not found' });
@@ -47,9 +47,16 @@ export class UserController {
       }
 
       if (isActive !== undefined) user.isActive = isActive;
-      if (role && ['SUPER_ADMIN', 'ADMIN', 'USER'].includes(role)) {
+      if (role && ['SUPER_ADMIN', 'ADMIN', 'USER', 'AI_BOT'].includes(role)) {
         user.role = role;
       }
+      
+      // Update profile fields if provided
+      if (username) user.username = username;
+      if (fullName) user.fullName = fullName;
+      if (email) user.email = email;
+      if (initials) user.initials = initials;
+
       
       await user.save();
 

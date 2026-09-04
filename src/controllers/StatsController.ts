@@ -8,17 +8,17 @@ export class StatsController {
     try {
       const { accountId } = req.query;
       
-      const mentionWhere: any = {};
-      const includeClause: any = [];
+      const mentionWhere: any = { [Op.or]: [{ isHidden: false }, { isHidden: null }] };
+      const includeClause: any = [{
+        model: Mention,
+        as: 'mention',
+        where: { [Op.or]: [{ isHidden: false }, { isHidden: null }] },
+        attributes: []
+      }];
       
       if (accountId) {
         mentionWhere.twitterAccountId = accountId;
-        includeClause.push({
-          model: Mention,
-          as: 'mention',
-          where: { twitterAccountId: accountId },
-          attributes: []
-        });
+        includeClause[0].where.twitterAccountId = accountId;
       }
 
       // Global stats
@@ -28,7 +28,7 @@ export class StatsController {
       // 1. Top line stats
       const mentionsCount = await Mention.count({ where: mentionWhere });
       const repliesCount = await Reply.count({
-        include: includeClause.length > 0 ? includeClause : undefined
+        include: includeClause
       });
       
       const responseRate = mentionsCount === 0 ? 0 : Math.round((repliesCount / mentionsCount) * 100);
@@ -49,7 +49,7 @@ export class StatsController {
 
         const rCount = await Reply.count({
           where: { createdAt: { [Op.between]: [startOfDay, endOfDay] } },
-          include: includeClause.length > 0 ? includeClause : undefined
+          include: includeClause
         });
 
         graphData.push({

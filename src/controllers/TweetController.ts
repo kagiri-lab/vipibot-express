@@ -58,4 +58,16 @@ export class TweetController {
       res.status(500).json({ message: 'Failed to post tweet', error: errMessage });
     }
   }
+
+  static async deleteTweet(req: Request, res: Response) {
+    try {
+      const { accountId, tweetId } = req.params;
+      await TwitterService.deleteTweet(parseInt(accountId, 10), tweetId);
+      res.json({ message: 'Tweet deleted successfully from X' });
+    } catch (error: any) {
+      console.error('Error deleting tweet:', error);
+      res.status(500).json({ message: 'Failed to delete tweet', error: error.message || String(error) });
+    }
+  }
+
 }

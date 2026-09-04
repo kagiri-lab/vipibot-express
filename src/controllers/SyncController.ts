@@ -68,6 +68,11 @@ export class SyncController {
                 authorProfileImageUrl = author.profile_image_url || null;
               }
             }
+            
+            // SKIP IF BLOCKED
+            if (blockedHandles.includes(authorUsername.toLowerCase())) {
+               continue;
+            }
 
             let mediaUrls = null;
             if (tweet.attachments && tweet.attachments.media_keys && includes && includes.media) {

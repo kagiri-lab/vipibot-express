@@ -57,4 +57,30 @@ export class MentionController {
       return res.status(500).json({ error: 'Failed to delete mention' });
     }
   }
+
+  static async blockUser(req: Request, res: Response) {
+    try {
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ error: 'Username is required' });
+
+      // 1. Add to blocked_handles system setting
+      const { SystemSetting } = require('../models');
+      const setting = await SystemSetting.findOrCreate({ where: { key: 'blocked_handles' }, defaults: { value: '' } });
+      const currentBlocked = setting[0].value ? setting[0].value.split(',').map((u: string) => u.trim().toLowerCase()) : [];
+      
+      if (!currentBlocked.includes(username.toLowerCase())) {
+        currentBlocked.push(username.toLowerCase());
+        setting[0].value = currentBlocked.join(',');
+        await setting[0].save();
+      }
+
+      // 2. Hide all existing mentions from this user
+      await Mention.update({ isHidden: true }, { where: { authorUsername: username } });
+
+      res.json({ message: `User @${username} has been blocked and all their mentions hidden.` });
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      res.status(500).json({ error: 'Failed to block user' });
+    }
+  }
 }

@@ -216,4 +216,16 @@ export class TwitterService {
       throw err;
     }
   }
+
+  static async deleteTweet(accountId: number, tweetId: string) {
+    const client = await this.getClient(accountId);
+    try {
+      const response = await client.v2.deleteTweet(tweetId);
+      return response;
+    } catch (err) {
+      console.error('Error deleting tweet from Twitter:', err);
+      throw err;
+    }
+  }
+
 }
