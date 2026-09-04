@@ -25,7 +25,7 @@ const startServer = async () => {
     
     // Sync models with database (creates tables if they don't exist)
     // In production, use proper migrations (e.g. sequelize-cli) instead of sync()
-    await sequelize.sync();
+    await sequelize.sync({ alter: true }); // added { alter: true } to auto-add new isHidden column
     console.log('Database synced.');
 
     // Setup automatic mention syncing (dynamically polled every minute)

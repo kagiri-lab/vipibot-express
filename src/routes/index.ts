@@ -86,6 +86,7 @@ router.get('/tweets/:accountId', authMiddleware, TweetController.getRecentTweets
 
 // Mentions (All authenticated users)
 router.get('/mentions', authMiddleware, MentionController.getAll);
+router.delete('/mentions/:id', authMiddleware, authorizeRoles('SUPER_ADMIN'), MentionController.delete);
 router.post('/mentions/sync', authMiddleware, SyncController.syncMentions);
 
 // Replies (All authenticated users)

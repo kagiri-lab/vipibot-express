@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { Request, Response } from 'express';
 import { Mention, TwitterAccount, Reply, User } from '../models';
 
@@ -36,6 +37,24 @@ export class MentionController {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Error fetching mentions', error });
+    }
+  }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const mention = await Mention.findByPk(id);
+      
+      if (!mention) {
+        return res.status(404).json({ error: 'Mention not found' });
+      }
+      
+      mention.isHidden = true;
+      await mention.save();
+      return res.status(200).json({ message: 'Mention deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting mention:', error);
+      return res.status(500).json({ error: 'Failed to delete mention' });
     }
   }
 }

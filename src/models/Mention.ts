@@ -13,6 +13,7 @@ class Mention extends Model {
   declare rootTweetText!: string | null;
   declare draftText!: string | null;
   declare status!: 'PENDING' | 'REPLIED';
+  declare isHidden!: boolean;
   declare readonly createdAt!: Date;
   declare readonly updatedAt!: Date;
 }
@@ -72,6 +73,10 @@ Mention.init(
     status: {
       type: DataTypes.ENUM('PENDING', 'REPLIED'),
       defaultValue: 'PENDING',
+    },
+    isHidden: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
   },
   {
