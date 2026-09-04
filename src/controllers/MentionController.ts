@@ -6,7 +6,7 @@ export class MentionController {
   static async getAll(req: Request, res: Response) {
     try {
       const { accountId, page = 1, limit = 20 } = req.query;
-      const whereClause: any = {};
+      const whereClause: any = { [Op.or]: [{ isHidden: false }, { isHidden: null }] };
       if (accountId) {
         whereClause.twitterAccountId = accountId;
       }
